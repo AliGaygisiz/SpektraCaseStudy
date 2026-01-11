@@ -1,0 +1,31 @@
+services:
+  spektra-app:
+    build: .
+    container_name: spektra-app
+    ports:
+      - "8080:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=spektra-db;Database=spektra_db;Username=postgres;Password=postgres
+      - WorkerSettings__FlushIntervalSeconds=5
+      - WorkerSettings__CleanupIntervalMinutes=10
+      - WorkerSettings__ColdEventThresholdMinutes=60
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - spektra-db
+    restart: always
+
+  spektra-db:
+    image: postgres:15-alpine
+    container_name: spektra-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: spektra_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_data:
