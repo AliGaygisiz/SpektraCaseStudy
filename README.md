@@ -1,7 +1,10 @@
 # Spektra Games Case Study
 
-I used .NET 10 for server and PostgreSQL for database choice for this case study.
-OpenApiDocument.json is in the root folder of the repo.
+I used .NET 10 for server and PostgreSQL for database choice for this case study.  
+OpenApiDocument.json is in the root folder of the repo.  
+
+I also added the Scalar API interface in prod environment too so it would be easier to check the endpoints  
+<http://localhost:8080/scalar/>
 
 ## Authentication
 
