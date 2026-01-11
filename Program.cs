@@ -36,6 +36,8 @@ builder.Services.AddScoped<IngestionService>();
 builder.Services.AddScoped<EvaluationService>();
 builder.Services.AddHostedService<PersistenceWorker>();
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 app.MapOpenApi();
@@ -43,5 +45,6 @@ app.MapScalarApiReference();
 
 app.MapTenantIdentityEndpoints();
 app.MapApplicationEndpoints();
+app.MapHealthChecks("/health");
 
 app.Run();
