@@ -59,7 +59,7 @@ These all numbers are configurable via appsettings.json or environment variables
 
 Using [wrk](https://github.com/wg/wrk), I ran a benchmark to test all the endpoints. These are the results on my local machine:
 
-> 2018 Thinkpad T480, i5 8350U CPU, 16GB RAM
+> 2018 Thinkpad T480, i5 8350U CPU, 16GB RAM  
 > benchmark.lua file is in the repo.
 
 Using 4 threads and 200 concurrent users, my API could handle ~30k requests per second with less than < 10ms latency on average.
