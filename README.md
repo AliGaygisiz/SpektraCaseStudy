@@ -1,6 +1,6 @@
 # Spektra Games Case Study
 
-I used .NET 10 for server and PostgreSQL for database choice for this case study.  
+I used .NET 10 for the server and PostgreSQL as the database choice for this case study.  
 OpenApiDocument.json is in the root folder of the repo.  
 
 I also added the Scalar API interface in prod environment too so it would be easier to check the endpoints  
@@ -48,7 +48,7 @@ If an out-of-order event is not processed before, it gets processed like a norma
 
 For performance, the server isn't sending a `CREATE` request to the DB for every new ingestion. The server has a `Hot Storage` in it's memory. A concurrent dictionary with "primary key" as the key and the aggregate data as the value. Whenever a new `/event/ingest` request comes, the data is saving to that dictionary. With this, we can make incredibly fast read and write operations. If an aggregate is used in constantly in a short period of time, rather than asking to the DB for that data, we can get the data from this hot storage.
 
-Or whenever a query is made through `/events/aggregate` or `/events/evaluate`, the server first checks that hot storage and only sends a get request to the DB if it can't find it in there.
+Or whenever a query is made through `/events/aggregate` or `/events/evaluate`, the server first checks that hot storage and only sends a read operation to the DB if it can't find it in there.
 
 Also whenever an `/event/ingest` request makes a change in a data, the key of that data is saved to a `MarkedKeys` list (*queue*). And we have a worker that works in every 2 seconds, checking if there is any data change. Even if we have 50 thousand data in our hot storage, with the `MarkedKeys` list, we know which data are changed in last 2 seconds and send those data to the DB as a single bulk upsert method. With this, we can achieve so much throughput with less DB calls.
 
@@ -67,6 +67,8 @@ Using [wrk](https://github.com/wg/wrk), I ran a benchmark to test all the endpoi
 
 Using 4 threads and 200 concurrent users, my API could handle ~30k requests per second with less than < 10ms latency on average.
 
+> 70% of the requests was `ingest` operations. If the query requests were more frequent, the results would be even higher.  
+
 ```bash
 wrk -t4 -c200 -d30s -s benchmark.lua <http://localhost:8080>
 Running 30s test @ <http://localhost:8080>
@@ -79,7 +81,8 @@ Requests/sec:  29603.99
 Transfer/sec:      3.83MB
 ```
 
-> This benchmark is ran on a warm server, not with a cold start. I ran this benchmark a few times after starting up the server and then ran the benchmark for these results.
+> Logging is disabled in this benchmark. Server responses so fast that the only bottleneck is the logging. When enabled, results are about ~20k req/sec.  
+> Since we use a hot storage for frequent data access, server becomes faster as the benchmark goes on, because more data gets into the hot storage. This benchmark result is the result of running the benchmark a few times to warm up server.
 
 And the ram usage of Server and the database during the peak of the benchmark was like this:
 
@@ -98,11 +101,11 @@ Also, If a record is not found, instead of creating an object with all fields se
 
 I came up with all the methods to improve the performance of this project. I wrote the workflow and main business, then got help from AI to structure the project better. Also I started the project with SQLite to prototype easier, and when migrating to PostgreSQL, I got help from the AI to write the bulk upsert method. I used bulk upsert's with MongoDB when I was an intern but didn't know how to do bulk upsert in PostgreSQL so I learned it with the help of AI.
 
-Also got help from it to write the benchmark.lua
+Also got help from it to write the benchmark.lua  
 I wrote this Readme.md all by myself without any help from AI.
 
 ## Trade-offs
 
-I prioritized performance for this project and as the CAP theorem, there is some consequences for these choices. For example the new data is written to the DB every 2 seconds, so if server crashes in a moment, the changed data in that window is gone. But of course if we would deploy this project to a distributed server for production use, instead of saving the updated keys in the memory, it would be wiser to use something like RabbitMQ to save the queue of changed data and save them to DB in an interval.
+I prioritized performance for this project and per the CAP theorem, there are some consequences for these choices. For example the new data is written to the DB every 2 seconds, so if server crashes in a moment, the changed data in that window is gone. But of course if we would deploy this project to a distributed server for production use, instead of saving the updated keys in the memory, it would be wiser to use something like RabbitMQ to save the queue of changed data and save them to DB in an interval.
 
 Also for Hot Storage and ProcessedEvents, using Redis would be a better choice for reliability to both not having a cold startup when server restarts to fill the hot storage, since Redis already keeps them, and not lose the ProcessedEvents in the last 10 minutes.
